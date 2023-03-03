@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <style>
+
+        body {
+            margin: 0;
+            padding: 20px 0;
+            font-size: 0;
+        }
+        .main {
+            width: 100%;
+            padding: 20px 0;
+            background-color: #ddd;
+            text-align: center;
+        }
+        .panel {
+            display: inline-block;
+            vertical-align: top;
+            width: 48%;
+            text-align: left;
+        }
+        #text-input {
+            display: inline-block;
+            vertical-align: top;
+            max-width: 96%;
+            width: 84%;
+            height: 500px;
+            font-size: 14px;
+            font-family: monospace;
+        }
+        .button-container {
+            display: inline-block;
+            vertical-align: top;
+        }
+        #text-output {
+            font-size: 14px;
+            font-family: monospace;
+        }
+        .button {
+            vertical-align: top;
+            font-size: 14px;
+        }
+
+    </style>
+    <script>
+
+        const lineBreaks = /\r?\n|\r|\n/g;
+        const bullets = ['\u2022', '•', '•', '●'];
+        const commonCopy = [
+            'character description', 
+            'required items', 
+            'required details', 
+            'additional images', 
+            'optional items', 
+            'optional details', 
+            'costume resources', 
+        ];
+
+        const clear = () => {
+
+            $('#clear').on('click', () => {
+                $('#text-input').val('');
+                $('#text-output').empty();
+            });
+
+        }
+        
+        // Checks for header copy and adds <strong>.
+        const replaceHeaderCopy = copy => {
+
+            // It will still check copy against commonCopy array even if copy has a ":".
+            let cleanCopy = copy.indexOf(':') > -1 ? copy.replace(':', '') : copy;
+            return commonCopy.includes(cleanCopy.toLowerCase()) ? 
+                '&lt;strong&gt;' + copy + '&lt;/strong&gt;' : 
+                copy;
+
+        }
+
+        // Checks to see if string has a bullet.
+        const hasBullet = item => {
+                    
+            let bulletIndex = -1;
+            item.trim();
+
+            bullets.forEach((bulletItem, index) => {
+                bulletIndex = bulletItem === item.charAt(0) ? index : -1
+            });
+
+            return bulletIndex;
+
+        }
+
+        // Converts text urls to anchors.
+        const urlToAnchor = string => {
+
+            if (string.indexOf('http') > -1) {
+                var urlRegEx = /(https?:\/\/[^\s]+)/g;
+                string = string.replace(urlRegEx, url => '<a href="' + url + '" target="_blank" rel="noopener">' + url + '</a>')
+            }
+            
+            return string;
+
+        }
+
+
+        // Converts text urls to anchors in HTML.
+        const urlToTextAnchor = string => {
+
+            if (string.indexOf('http') > -1) {
+                var urlRegEx = /(https?:\/\/[^\s]+)/g;
+                string = string.replace(urlRegEx, url => '&lt;a href="' + url + '"&gt;' + url + '&lt;/a&gt;')
+            }
+
+            return string;
+
+        }
+
+        const replaceList = string => {
+
+            let isList = false;
+            let array = string.split(lineBreaks);
+            array = array.map(item => item.trim());
+
+            // If a bullet list is found it will add <ol> tags at beginning and end.
+            for (let i = 0; i < array.length; i++) {
+
+                let bulletIndex = hasBullet(array[i]);
+
+                if (isList === false && bulletIndex !== -1) {
+                    isList = true;
+                    array.splice(i, 0, '&lt;ol&gt;');
+                } else if (isList === true && bulletIndex === -1) {
+                    array.splice(i, 0, '');
+                    array.splice(i, 0, '&lt;/ol&gt;');
+                    isList = false;
+                }
+
+            }
+
+            // If it's at the end and <ol> isn't close, this will close it.
+            if (isList) {
+                array.splice(array.length + 1, 0, '&lt;/ol&gt;');
+                isList = false;
+            }
+
+            // If a bullet is found it will remove the bullet and add <li> tags.
+            array = array.map( item => {
+
+                let newString = '';
+                let bulletIndex = hasBullet(item);
+
+                if (bulletIndex !== -1) {
+                    newString = item.replace(bullets[bulletIndex], '');
+                    newString = newString.trim();
+                    newString = urlToTextAnchor(newString);
+                    newString = '&lt;li&gt;' + newString + '&lt;/li&gt;';
+                } else {
+                    newString = replaceHeaderCopy(item);
+                    newString = urlToAnchor(newString);
+                }
+
+                return newString;
+
+            });
+
+            return array;
+
+        }
+
+        const convert = () => {
+
+            $('#convert').on('click', () => {
+
+                let string = $('#text-input').val();
+                let array = replaceList(string);
+                $('#text-output').html(array.join('\r\n<br>'));
+
+            });
+
+        }
+
+        const main = () => {
+
+            clear();
+            convert();
+
+        }
+        
+    </script>
+</head>
+
+<body>
+    <main class="main">
+
+        <section class="panel">
+            <textarea id="text-input"></textarea>
+            <div class="button-container">
+                <button id="convert" class="button">Convert</button>
+                <button id="clear" class="button">Clear</button>
+
+                <form id="list-type">
+                    <input type="radio" id="ol" name="list-type" value="ol">
+                    <label for="ol">OL</label><br>  
+                    <input type="radio" id="ul" name="list-type" value="ul">
+                    <label for="ul">UL</label><br><br>
+                </form>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div id="text-output">
+            </div>
+        </section>
+
+    </main>
+    <script>
+        $(document).ready(() => {
+
+            main();
+
+        });
+    </script>
+</body>
+</html>
